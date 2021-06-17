@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+'use strict';
+
+const args = process.argv.slice(2).map(arg => arg.replace(/^--?/, ''));
+
+let global = false;
+let watch = false;
+let incremental = false;
+
+for (const arg of args) {
+	switch (arg) {
+	case 'g': case 'global':
+		global = true;
+		break;
+	case 'w': case 'watch':
+		watch = true;
+		break;
+	case 'i': case 'incremental':
+		incremental = true;
+		break;
+	default:
+		console.error(`Unrecognized argument ${arg}`);
+		break;
+	}
+}
+
+const path = require('path');
+const fs = require('fs');
+
+let cwd = process.cwd();
+while (!fs.existsSync(path.join(cwd, 'package.json'))) {
+	process.chdir('..');
+	if (cwd === process.cwd()) {
+		console.error("package.json not found");
+		process.exit(1);
+	}
+	cwd = process.cwd();
+}
+
+let zbuild;
+if (!global) {
+	try {
+		zbuild = require(path.join(cwd, 'node_modules', 'zbuild'));
+	} catch {}
+}
+
+if (!zbuild) zbuild = require('./src');
+
+zbuild.build({watch, incremental});

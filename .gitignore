@@ -1,0 +1,12 @@
+package-lock.json
+
+# TS
+*.tsbuildinfo
+# eslint
+.eslintcache
+# Node cruft
+node_modules/
+npm-debug.log*
+# OS cruft
+.DS_Store
+Thumbs.db

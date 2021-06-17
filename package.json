@@ -1,0 +1,25 @@
+{
+  "name": "zpkg",
+  "version": "0.0.1",
+  "description": "Build system",
+  "bin": "./zpkg",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zarel/zpkg.git"
+  },
+  "author": "Zarel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Zarel/zpkg/issues"
+  },
+  "homepage": "https://github.com/Zarel/zpkg#readme",
+  "dependencies": {
+    "@babel/core": "^7.14.3",
+    "chokidar": "^3.5.1",
+    "esbuild": "^0.12.6"
+  }
+}
