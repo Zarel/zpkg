@@ -30,6 +30,12 @@ Node.js servers
 Put your server code as `.ts` files in `server/`. They will be compiled to JavaScript files in `server-dist/`.
 
 
+NPM libraries
+-------------
+
+Put your library code as `.ts` files in `src/`. They will be compiled to JavaScript files in `dist/`.
+
+
 Building
 --------
 

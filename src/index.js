@@ -41,6 +41,21 @@ function buildServer(opts = {}) {
 	);
 }
 
+/**
+ * @param {CompileOpts} opts
+ */
+function buildSrc(opts = {}) {
+	const serverCompileOpts = Object.assign(eval('(' + fs.readFileSync(__dirname + '/babelrc-server.jsonc') + ')'), {
+		babelrc: false,
+		ignore: ['tsconfig.json'],
+	}, opts);
+	return compiler.compileToDir(
+		'src',
+		'dist',
+		serverCompileOpts
+	);
+}
+
 function build(opts) {
 	let compiledFiles = 0;
 	let anyFound = false;
@@ -58,8 +73,14 @@ function build(opts) {
 		compiledFiles += buildServer(opts);
 		anyFound = true;
 	}
+	if (fs.existsSync('src')) {
+		process.stdout.write("Compiling src... ");
+
+		compiledFiles += buildSrc(opts);
+		anyFound = true;
+	}
 	if (!anyFound) {
-		console.error("Your source files must be in a directory named client/ or server/");
+		console.error("Your source files must be in a directory named client/, server/, or src/");
 		return;
 	}
 
