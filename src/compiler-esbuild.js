@@ -140,4 +140,62 @@ function compileToDir(srcDir, destDir, opts = {}) {
 	return results;
 }
 
+function compileSeparately(srcDir, destDir, opts = {}) {
+	const entryPoints = [];
+	function handle(src, dest) {
+		const stat = fs.statSync(src, {throwIfNoEntry: false});
+		if (!stat) return 0;
+
+		if (stat.isDirectory()) {
+			const files = fs.readdirSync(src);
+			let total = 0;
+			for (const file of files) {
+				if (file.startsWith('.')) continue;
+				total += handle(path.join(src, file), path.join(dest, file));
+			}
+			return total;
+		} else {
+			return handleFile(src, dest);
+		}
+	}
+
+	function handleFile(src, dest) {
+		if (opts.incremental && noRebuildNeeded(src, dest)) return 0;
+
+		if (src.endsWith('.ts')) {
+			entryPoints.push(src);
+			return 0;
+		}
+
+		fs.mkdirSync(path.dirname(dest), {recursive: true});
+		fs.copyFileSync(src, dest);
+		fs.chmodSync(dest, fs.statSync(src).mode);
+		return 1;
+	}
+
+	const results = handle(srcDir, destDir);
+
+	esbuild.build({
+		entryPoints,
+		outdir: destDir,
+		outbase: srcDir,
+		watch: opts.watch ? {
+			onRebuild: (error, result) => {
+				console.log(`rebuilt ${result.outputFiles}`);
+			},
+		} : false,
+		format: 'cjs',
+		minify: true,
+		target: 'es6',
+		sourcemap: true,
+	}).then(() => {
+		if (opts.watch) {
+			console.log(`Watching ${srcDir} for changes...`);
+		}
+	});
+
+	return results;
+}
+
 exports.compileToDir = compileToDir;
+exports.compileSeparately = compileSeparately;

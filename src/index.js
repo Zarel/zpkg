@@ -1,10 +1,9 @@
 'use strict';
 
 const fs = require('fs');
-const compiler = require('./compiler-babel');
 const compilerE = require('./compiler-esbuild');
 
-/** 
+/**
  * @typedef {object} CompileOpts
  * @property {boolean} [incremental]
  * @property {boolean} [watch]
@@ -14,15 +13,10 @@ const compilerE = require('./compiler-esbuild');
  * @param {CompileOpts} opts
  */
 function buildClient(opts = {}) {
-	const compileOpts = Object.assign(eval('(' + fs.readFileSync(__dirname + '/babelrc-client.jsonc') + ')'), {
-		babelrc: false,
-		ignore: ['tsconfig.json'],
-	}, opts);
-
 	return compilerE.compileToDir(
 		'client',
 		'client-dist',
-		compileOpts
+		opts
 	);
 }
 
@@ -30,11 +24,12 @@ function buildClient(opts = {}) {
  * @param {CompileOpts} opts
  */
 function buildServer(opts = {}) {
-	const serverCompileOpts = Object.assign(eval('(' + fs.readFileSync(__dirname + '/babelrc-server.jsonc') + ')'), {
+	const serverCompileOpts = {
 		babelrc: false,
 		ignore: ['tsconfig.json'],
-	}, opts);
-	return compiler.compileToDir(
+		...opts,
+	};
+	return compilerE.compileSeparately(
 		'server',
 		'server-dist',
 		serverCompileOpts
@@ -45,11 +40,12 @@ function buildServer(opts = {}) {
  * @param {CompileOpts} opts
  */
 function buildSrc(opts = {}) {
-	const serverCompileOpts = Object.assign(eval('(' + fs.readFileSync(__dirname + '/babelrc-server.jsonc') + ')'), {
+	const serverCompileOpts = {
 		babelrc: false,
 		ignore: ['tsconfig.json'],
-	}, opts);
-	return compiler.compileToDir(
+		...opts,
+	};
+	return compilerE.compileSeparately(
 		'src',
 		'dist',
 		serverCompileOpts
