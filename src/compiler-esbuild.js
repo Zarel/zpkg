@@ -14,7 +14,35 @@ function noRebuildNeeded(src, dest) {
 	return false;
 }
 
+/**
+ * @param {string[]} dirs
+ * @param {(path: string) => void} listener 
+ */
+function watch(dir, listener) {
+	let chokidar;
+	try {
+		chokidar = require('chokidar');
+	} catch (e) {
+		throw new Error("You must have chokidar installed.");
+	}
+
+	const watcher = chokidar.watch(dir, {
+		persistent: true,
+		ignoreInitial: true,
+		awaitWriteFinish: {
+			stabilityThreshold: 50,
+			pollInterval: 10,
+		},
+	});
+
+	for (const type of ["add", "change"]) {
+		watcher.on(type, listener);
+	}
+}
+
 function compileToDir(srcDir, destDir, opts = {}) {
+	let incremental = opts.incremental;
+
 	const entryPoints = [];
 	/** @type {Map<string, string[]>} Map<entryPoint, htmlFile> */
 	const entryPointDependencies = new Map();
@@ -35,12 +63,12 @@ function compileToDir(srcDir, destDir, opts = {}) {
 		}
 	}
 
-	function handleFile(src, dest) {
+	function handleFile(src, dest = path.join(destDir, path.relative(srcDir, src))) {
 		if (dest.endsWith('.html') || dest.endsWith('.html')) {
 			return handleHTML(src, dest);
 		}
 
-		if (opts.incremental && noRebuildNeeded(src, dest)) return 0;
+		if (incremental && noRebuildNeeded(src, dest)) return 0;
 
 		fs.mkdirSync(path.dirname(dest), {recursive: true});
 		fs.copyFileSync(src, dest);
@@ -57,7 +85,7 @@ function compileToDir(srcDir, destDir, opts = {}) {
 		}
 	}
 
-	function handleHTML(src, dest = path.join(destDir, path.relative(srcDir, src))) {
+	function handleHTML(src, dest) {
 		fs.mkdirSync(path.dirname(dest), {recursive: true});
 		let contents = '' + fs.readFileSync(src);
 		contents = contents.replace(/<script src="([^"]*.tsx?)">/i, (substring, ePath) => {
@@ -84,7 +112,7 @@ function compileToDir(srcDir, destDir, opts = {}) {
 		});
 
 		try {
-			const oldContents = fs.readFileSync(dest);
+			const oldContents = '' + fs.readFileSync(dest);
 			if (oldContents === contents) return 0;
 		} catch {}
 		console.log(`${src} -> ${dest}`);
@@ -107,7 +135,7 @@ function compileToDir(srcDir, destDir, opts = {}) {
 			outfile: path.join(destDir, compiledEntryPoint(entryPoint)),
 			watch: opts.watch ? {
 				onRebuild: (error, result) => {
-					console.log(`rebuilt ${entryPoint}`);
+					console.log(`rebundled ${entryPoint}`);
 					const deps = entryPointDependencies.get(entryPoint);
 					for (const dep of deps) {
 						handleHTML(dep);
@@ -130,9 +158,14 @@ function compileToDir(srcDir, destDir, opts = {}) {
 			}
 		}
 		for (const point of htmlEntryPoints) {
-			handleHTML(point);
+			handleFile(point);
 		}
 		if (opts.watch) {
+			incremental = false;
+			watch(srcDir, filename => {
+				handleFile(filename);
+				console.log(`rebuilt ${filename}`);
+			});
 			console.log(`Watching ${srcDir} for changes...`);
 		}
 	});
@@ -141,6 +174,7 @@ function compileToDir(srcDir, destDir, opts = {}) {
 }
 
 function compileSeparately(srcDir, destDir, opts = {}) {
+	let incremental = opts.incremental;
 	const entryPoints = [];
 	function handle(src, dest) {
 		const stat = fs.statSync(src, {throwIfNoEntry: false});
@@ -159,11 +193,11 @@ function compileSeparately(srcDir, destDir, opts = {}) {
 		}
 	}
 
-	function handleFile(src, dest) {
-		if (opts.incremental && noRebuildNeeded(src, dest)) return 0;
+	function handleFile(src, dest = path.join(destDir, path.relative(srcDir, src))) {
+		if (incremental && noRebuildNeeded(src, dest)) return 0;
 
 		if (src.endsWith('.ts')) {
-			entryPoints.push(src);
+			handleTSFile(src, dest);
 			return 0;
 		}
 
@@ -173,26 +207,29 @@ function compileSeparately(srcDir, destDir, opts = {}) {
 		return 1;
 	}
 
+	function handleTSFile(src, dest) {
+		esbuild.buildSync({
+			entryPoints: [src],
+			outdir: destDir,
+			outbase: srcDir,
+			watch: false,
+			format: 'cjs',
+			minify: true,
+			target: 'es6',
+			sourcemap: true,
+		});
+	}
+
 	const results = handle(srcDir, destDir);
 
-	esbuild.build({
-		entryPoints,
-		outdir: destDir,
-		outbase: srcDir,
-		watch: opts.watch ? {
-			onRebuild: (error, result) => {
-				console.log(`rebuilt ${result.outputFiles}`);
-			},
-		} : false,
-		format: 'cjs',
-		minify: true,
-		target: 'es6',
-		sourcemap: true,
-	}).then(() => {
-		if (opts.watch) {
-			console.log(`Watching ${srcDir} for changes...`);
-		}
-	});
+	if (opts.watch) {
+		incremental = false;
+		watch(srcDir, filename => {
+			handleFile(filename);
+			console.log(`rebuilt ${filename}`);
+		});
+		console.log(`Watching ${srcDir} for changes...`);
+	}
 
 	return results;
 }
