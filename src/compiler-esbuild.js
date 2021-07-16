@@ -79,7 +79,8 @@ function compileToDir(srcDir, destDir, opts = {}) {
 	function getCachebuster(src) {
 		try {
 			const contents = fs.readFileSync(src);
-			return '?' + crypto.createHash('md5').update(contents).digest('hex').slice(0, 8);
+			const hash = crypto.createHash('md5').update(contents).digest('hex');
+			return '?' + hash.slice(0, 8);
 		} catch {
 			return '';
 		}
@@ -107,7 +108,7 @@ function compileToDir(srcDir, destDir, opts = {}) {
 				entryPointDependencies.set(entryPoint, deps);
 			}
 			if (!deps.includes(src)) deps.push(src);
-			const cachebuster = getCachebuster(src);
+			const cachebuster = getCachebuster(path.join(path.dirname(dest), compiledEntryPoint(ePath)));
 			return `<script src="${compiledEntryPoint(ePath) + cachebuster}">`;
 		});
 
