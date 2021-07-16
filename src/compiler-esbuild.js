@@ -138,7 +138,7 @@ function compileToDir(srcDir, destDir, opts = {}) {
 					console.log(`rebundled ${entryPoint}`);
 					const deps = entryPointDependencies.get(entryPoint);
 					for (const dep of deps) {
-						handleHTML(dep);
+						handleFile(dep);
 					}
 				},
 			} : false,
