@@ -1,6 +1,6 @@
 {
   "name": "zpkg",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Build system",
   "bin": "./zpkg",
   "main": "src/index.js",
