@@ -143,7 +143,7 @@ function compileToDir(srcDir, destDir, opts = {}) {
 					}
 				},
 			} : false,
-			format: 'esm',
+			format: 'iife',
 			minify: true,
 			target: 'es6',
 			sourcemap: true,
