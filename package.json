@@ -1,8 +1,10 @@
 {
   "name": "zpkg",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Build system",
-  "bin": "./zpkg",
+  "bin": {
+    "zpkg": "zpkg"
+  },
   "main": "src/index.js",
   "scripts": {
     "test": "test"
